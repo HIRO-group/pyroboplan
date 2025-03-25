@@ -12,7 +12,7 @@ from ..core.utils import (
 from itertools import product
 
 
-def extend_robot_state(q_parent, q_sample, max_connection_distance):
+def extend_robot_state(q_parent, q_sample, max_connection_distance, model):
     """
     Determines an incremental robot configuration between the parent and sample states, if one exists.
 
@@ -24,6 +24,8 @@ def extend_robot_state(q_parent, q_sample, max_connection_distance):
             The candidate sample configuration to extend towards.
         max_connection_distance : float
             Maximum angular distance, in radians, for connecting nodes.
+        model : `pinocchio.Model`
+            The model used for defining joint limits.
 
     Returns
     -------
@@ -34,18 +36,29 @@ def extend_robot_state(q_parent, q_sample, max_connection_distance):
     distance = np.linalg.norm(q_diff)
     if distance == 0.0:
         return q_sample
+    
     q_increment = max_connection_distance * q_diff / distance
 
     q_cur = q_parent
     # Clip the distance between nearest and sampled nodes to max connection distance.
-    # If we have reached the sampled node, then we just check that.
     if configuration_distance(q_cur, q_sample) > max_connection_distance:
         q_extend = q_cur + q_increment
     else:
         q_extend = q_sample
 
-    # Then there are no collisions so the extension is valid
+    # ✅ Clamp to joint limits after extension
+    q_extend = np.clip(q_extend, model.lowerPositionLimit, model.upperPositionLimit)
+
+    # ✅ Debugging check for violations
+    if np.any(q_extend < model.lowerPositionLimit) or np.any(q_extend > model.upperPositionLimit):
+        print("❌ State out of joint limits after extension!")
+        print(f"q_extend: {q_extend}")
+        print(f"Joint limits: {model.lowerPositionLimit} to {model.upperPositionLimit}")
+        breakpoint()
+
+  
     return q_extend
+
 
 
 def has_collision_free_path(

@@ -51,94 +51,47 @@ def add_self_collisions(model, collision_model, srdf_filename=None):
     pinocchio.removeCollisionPairs(model, collision_model, srdf_filename)
 
 
-def add_object_collisions(model, collision_model, visual_model, inflation_radius=0.0):
+def add_object_collisions(model, collision_model, visual_model, collision_objects_dict, inflation_radius=0.0):
     """
-    Adds obstacles and collisions to the Panda collision model.
+    Adds user-defined collision objects to the collision and visual models.
 
     Parameters
     ----------
         model : `pinocchio.Model`
-            The Panda model.
-        collision_model : `pinocchio.Model`
-            The Panda collision geometry model.
-        visual_model : `pinocchio.Model`
-            The Panda visual geometry model.
+            The robot model.
+        collision_model : `pinocchio.GeometryModel`
+            The robot collision geometry model.
+        visual_model : `pinocchio.GeometryModel`
+            The robot visual geometry model.
+        collision_objects_dict : dict
+            Dictionary where keys are object names and values are `pinocchio.GeometryObject` instances.
         inflation_radius : float, optional
-            An inflation radius, in meters, around the objects.
+            An inflation radius, in meters, around the objects (applied if the shape has an `inflated` method).
     """
-    # Add the collision objects
-    ground_plane = pinocchio.GeometryObject(
-        "ground_plane",
-        0,
-        pinocchio.SE3(np.eye(3), np.array([0.0, 0.0, -0.151])),
-        coal.Box(2.0, 2.0, 0.3),
-    )
-    ground_plane.meshColor = np.array([0.5, 0.5, 0.5, 0.5])
-    visual_model.addGeometryObject(ground_plane)
-    collision_model.addGeometryObject(ground_plane)
+    for name, geom_obj in collision_objects_dict.items():
+        shape = geom_obj.geometry
+        # Inflate the shape if it has an 'inflated' method
+        if hasattr(shape, 'inflated'):
+            min_inflation = shape.minInflationValue()
+            if inflation_radius >= min_inflation:
+                geom_obj.geometry = shape.inflated(inflation_radius)
+            else:
+                raise ValueError(f"Inflation radius {inflation_radius} is less than the minimum required {min_inflation} for {name}.")
+        elif isinstance(shape, coal.Sphere):
+            # Directly inflate spheres by increasing the radius
+            shape.radius += inflation_radius
 
-    obstacle_sphere_1 = pinocchio.GeometryObject(
-        "obstacle_sphere_1",
-        0,
-        pinocchio.SE3(np.eye(3), np.array([0.0, 0.1, 1.1])),
-        coal.Sphere(0.2 + inflation_radius),
-    )
-    obstacle_sphere_1.meshColor = np.array([0.0, 1.0, 0.0, 0.5])
-    visual_model.addGeometryObject(obstacle_sphere_1)
-    collision_model.addGeometryObject(obstacle_sphere_1)
+        visual_model.addGeometryObject(geom_obj)
+        collision_model.addGeometryObject(geom_obj)
 
-    obstacle_sphere_2 = pinocchio.GeometryObject(
-        "obstacle_sphere_2",
-        0,
-        pinocchio.SE3(np.eye(3), np.array([0.5, 0.5, 0.5])),
-        coal.Sphere(0.25 + inflation_radius),
-    )
-    obstacle_sphere_2.meshColor = np.array([1.0, 1.0, 0.0, 0.5])
-    visual_model.addGeometryObject(obstacle_sphere_2)
-    collision_model.addGeometryObject(obstacle_sphere_2)
+    # Define active collision pairs between robot and obstacle links
+    collision_names = [cobj.name for cobj in collision_model.geometryObjects if "panda" in cobj.name]
+    obstacle_names = list(collision_objects_dict.keys())
 
-    obstacle_box_1 = pinocchio.GeometryObject(
-        "obstacle_box_1",
-        0,
-        pinocchio.SE3(np.eye(3), np.array([-0.5, 0.5, 0.7])),
-        coal.Box(
-            0.25 + 2.0 * inflation_radius,
-            0.55 + 2.0 * inflation_radius,
-            0.55 + 2.0 * inflation_radius,
-        ),
-    )
-    obstacle_box_1.meshColor = np.array([1.0, 0.0, 0.0, 0.5])
-    visual_model.addGeometryObject(obstacle_box_1)
-    collision_model.addGeometryObject(obstacle_box_1)
-
-    obstacle_box_2 = pinocchio.GeometryObject(
-        "obstacle_box_2",
-        0,
-        pinocchio.SE3(np.eye(3), np.array([-0.5, -0.5, 0.75])),
-        coal.Box(
-            0.33 + 2.0 * inflation_radius,
-            0.33 + 2.0 * inflation_radius,
-            0.33 + 2.0 * inflation_radius,
-        ),
-    )
-    obstacle_box_2.meshColor = np.array([0.0, 0.0, 1.0, 0.5])
-    visual_model.addGeometryObject(obstacle_box_2)
-    collision_model.addGeometryObject(obstacle_box_2)
-
-    # Define the active collision pairs between the robot and obstacle links.
-    collision_names = [
-        cobj.name for cobj in collision_model.geometryObjects if "panda" in cobj.name
-    ]
-    obstacle_names = [
-        "ground_plane",
-        "obstacle_box_1",
-        "obstacle_box_2",
-        "obstacle_sphere_1",
-        "obstacle_sphere_2",
-    ]
     for obstacle_name in obstacle_names:
         for collision_name in collision_names:
             set_collisions(model, collision_model, obstacle_name, collision_name, True)
 
     # Exclude the collision between the ground and the base link
-    set_collisions(model, collision_model, "panda_link0", "ground_plane", False)
+    if "ground_plane" in collision_objects_dict:
+        set_collisions(model, collision_model, "panda_link0", "ground_plane", False)

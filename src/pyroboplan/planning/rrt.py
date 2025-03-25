@@ -114,6 +114,23 @@ class RRTPlanner:
         self.collision_data = self.collision_model.createData()
         self.options = options
         self.reset()
+    
+    def update_model(self, model, collision_model):
+        """
+        Updates the model and collision model for this planner.
+
+        Parameters
+        ----------
+            model : `pinocchio.Model`
+                The new model to use for this solver.
+            collision_model : `pinocchio.Model`
+                The new model to use for collision checking.
+        """
+        self.model = model
+        self.collision_model = collision_model
+        self.data = self.model.createData()
+        self.collision_data = self.collision_model.createData()
+        self.reset()
 
     def reset(self):
         """Resets all the planning data structures."""
@@ -185,6 +202,7 @@ class RRTPlanner:
                 goal_found = True
 
         start_tree_phase = True
+        # print("Planning...")
         while True:
             # Only return on success if specified in the options.
             if goal_found and self.options.fast_return:
@@ -197,21 +215,22 @@ class RRTPlanner:
                     f"Planning {message} after {self.options.max_planning_time} seconds."
                 )
                 break
-
+            # print(f"Planning for {time.time() - t_start:.2f} seconds...")
             # Choose variables based on whether we're growing the start or goal tree.
             tree = self.start_tree if start_tree_phase else self.goal_tree
             other_tree = self.goal_tree if start_tree_phase else self.start_tree
-
+            # print(f"Tree size: {len(tree.nodes)}")
             # Sample a new configuration.
             if np.random.random() < self.options.goal_biasing_probability:
                 q_sample = q_goal if start_tree_phase else q_start
             else:
                 q_sample = get_random_state(self.model)
-
+            # print(f"Sampled: {q_sample}")
             # Run the extend or connect operation to connect the tree to the new node.
             nearest_node = tree.get_nearest_node(q_sample)
+            # print("Got nearest node")
             new_node = self.extend_or_connect(tree, nearest_node, q_sample)
-
+            # print(f"New node: {new_node}")
             # Only if extend/connect succeeded, add the new node to the tree.
             if new_node is not None:
                 if start_tree_phase:
@@ -253,6 +272,7 @@ class RRTPlanner:
                     start_tree_phase = not start_tree_phase
 
         # Back out the path by traversing the parents from the goal.
+        # print("Planning complete.")
         self.latest_path = []
         if goal_found:
             self.latest_path = self.extract_path_from_trees(
@@ -290,6 +310,7 @@ class RRTPlanner:
                 cur_parent_node.q,
                 q_sample,
                 self.options.max_connection_dist,
+                self.model
             )
 
             # If we can connect then it is a valid state

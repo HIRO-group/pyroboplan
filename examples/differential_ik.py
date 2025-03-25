@@ -21,13 +21,70 @@ from pyroboplan.models.panda import (
     add_self_collisions,
     add_object_collisions,
 )
+import pinocchio
+import coal
 
 
 if __name__ == "__main__":
     # Create models and data
     model, collision_model, visual_model = load_models()
+    
+    joint_id = 0
+    model.lowerPositionLimit[joint_id] = -1.0
+    model.upperPositionLimit[joint_id] = 1.0
     add_self_collisions(model, collision_model)
-    add_object_collisions(model, collision_model, visual_model, inflation_radius=0.1)
+    collision_objects = {}
+
+    # Ground plane
+    ground_plane = pinocchio.GeometryObject(
+        "ground_plane",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([0.0, 0.0, -0.151])),
+        coal.Box(2.0, 2.0, 0.3),
+    )
+    ground_plane.meshColor = np.array([0.5, 0.5, 0.5, 0.5])
+    collision_objects["ground_plane"] = ground_plane
+
+    # Spheres
+    # obstacle_sphere_1 = pinocchio.GeometryObject(
+    #     "obstacle_sphere_1",
+    #     0,
+    #     pinocchio.SE3(np.eye(3), np.array([0.0, 0.1, 1.1])),
+    #     coal.Sphere(0.2),
+    # )
+    # obstacle_sphere_1.meshColor = np.array([0.0, 1.0, 0.0, 0.5])
+    # collision_objects["obstacle_sphere_1"] = obstacle_sphere_1
+
+    # obstacle_sphere_2 = pinocchio.GeometryObject(
+    #     "obstacle_sphere_2",
+    #     0,
+    #     pinocchio.SE3(np.eye(3), np.array([0.5, 0.5, 0.5])),
+    #     coal.Sphere(0.25),
+    # )
+    # obstacle_sphere_2.meshColor = np.array([1.0, 1.0, 0.0, 0.5])
+    # collision_objects["obstacle_sphere_2"] = obstacle_sphere_2
+
+    # # Boxes
+    # obstacle_box_1 = pinocchio.GeometryObject(
+    #     "obstacle_box_1",
+    #     0,
+    #     pinocchio.SE3(np.eye(3), np.array([-0.5, 0.5, 0.7])),
+    #     coal.Box(0.25, 0.55, 0.55),
+    # )
+    # obstacle_box_1.meshColor = np.array([1.0, 0.0, 0.0, 0.5])
+    # collision_objects["obstacle_box_1"] = obstacle_box_1
+
+    # obstacle_box_2 = pinocchio.GeometryObject(
+    #     "obstacle_box_2",
+    #     0,
+    #     pinocchio.SE3(np.eye(3), np.array([-0.5, -0.5, 0.75])),
+    #     coal.Box(0.33, 0.33, 0.33),
+    # )
+    # obstacle_box_2.meshColor = np.array([0.0, 0.0, 1.0, 0.5])
+    # collision_objects["obstacle_box_2"] = obstacle_box_2
+
+    # Now use the updated function
+    add_object_collisions(model, collision_model, visual_model, collision_objects, inflation_radius=0.0)
 
     data = model.createData()
     collision_data = collision_model.createData()
@@ -74,20 +131,36 @@ if __name__ == "__main__":
         ),
     ]
 
-    # Solve IK several times and print the results
-    for _ in range(10):
-        init_state = get_random_collision_free_state(model, collision_model)
-        target_tform = get_random_collision_free_transform(
-            model,
-            collision_model,
-            target_frame,
-            joint_padding=0.05,
-        )
-        q_sol = ik.solve(
-            target_frame,
-            target_tform,
-            init_state=init_state,
-            nullspace_components=nullspace_components,
-            verbose=True,
-        )
-        print(f"Solution configuration:\n{q_sol}\n")
+    # # Solve IK several times and print the results
+    # for _ in range(10):
+    # init_state = get_random_collision_free_state(model, collision_model)
+    # breakpoint()
+    init_state = np.array([0,  0.259,  2.4,   -2.098, -0.183 , 1.9  , -2.21  , 0.028,  0.014])
+    # init_state = np.array([-2.144, -0.793,  2.81,  -1.808,  0.417,  2.531, -1.944,  0.028,  0.014])
+    # target_tform = get_random_collision_free_transform(
+    #     model,
+    #     collision_model,
+    #     target_frame,
+    #     joint_padding=0.05,
+    # )
+    # Identity rotation matrix (no rotation)
+    R = np.array([
+        [-1.0,  0.0,  0.0],
+        [ 0.0,  1.0,  0.0],
+        [ 0.0,  0.0, -1.0]
+    ])
+
+    # Translation vector
+    t = np.array([0.5, 0.4, 0.12])
+
+    # SE3 transformation
+    T = pinocchio.SE3(R, t)
+    
+    q_sol = ik.solve(
+        target_frame,
+        T,
+        init_state=init_state,
+        nullspace_components=nullspace_components,
+        verbose=True,
+    )
+    print(f"Solution configuration:\n{q_sol}\n")
