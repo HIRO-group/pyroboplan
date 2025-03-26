@@ -30,8 +30,8 @@ if __name__ == "__main__":
     model, collision_model, visual_model = load_models()
     
     joint_id = 0
-    model.lowerPositionLimit[joint_id] = -1.0
-    model.upperPositionLimit[joint_id] = 1.0
+    model.lowerPositionLimit[joint_id] = -0.3
+    model.upperPositionLimit[joint_id] = 0.3
     add_self_collisions(model, collision_model)
     collision_objects = {}
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     ])
 
     # Translation vector
-    t = np.array([0.5, 0.4, 0.12])
+    t = np.array([0.4, -0.4, 0.12])
 
     # SE3 transformation
     T = pinocchio.SE3(R, t)

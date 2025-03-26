@@ -25,23 +25,42 @@ from pyroboplan.visualization.meshcat_utils import visualize_frames
 
 # Create models and data
 model, collision_model, visual_model = load_models()
+joint_id = 0
+model.lowerPositionLimit[joint_id] = -0.3
+model.upperPositionLimit[joint_id] = 0.3
 add_self_collisions(model, collision_model)
 data = model.createData()
 collision_data = collision_model.createData()
 
 # Define the Cartesian path from a start joint configuration
 target_frame = "panda_hand"
-q_start = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785, 0.0, 0.0])
-init = extract_cartesian_pose(model, target_frame, q_start, data=data)
-rot = Rotation.from_euler("z", 60, degrees=True).as_matrix()
-rot_neg = Rotation.from_euler("z", -60, degrees=True).as_matrix()
+q_start = np.array([ 0.216,  0.841  ,0.478, -1.791, -0.597,  2.483, -1.314,  0.014,  0.007])
+# q_start = np.array([-0.258,  0.826, -0.432, -1.794, 0.54 ,  2.499 , 2.917 , 0.032 , 0.032])
+# q_end = np.array([-0.381,  1.698,  1.438, -1.719, -1.717,  1.682, -1., 0.036,  0.005])
+# init = extract_cartesian_pose(model, target_frame, q_start, data=data)
+# target = extract_cartesian_pose(model, target_frame, q_end, data=data)
+R = np.array([
+    [-1.0,  0.0,  0.0],
+    [ 0.0,  1.0,  0.0],
+    [ 0.0,  0.0, -1.0]
+])
+
+# Translation vector
+t = np.array([0.5, 0.4, 0.12])
+
+# SE3 transformation
+init = pinocchio.SE3(R, t)
+target = pinocchio.SE3(R, t - np.array([0.0, 0.8, 0.0]))
+# rot = Rotation.from_euler("z", 60, degrees=True).as_matrix()
+# rot_neg = Rotation.from_euler("z", -60, degrees=True).as_matrix()
 tforms = [
     init,
-    init * pinocchio.SE3(np.eye(3), np.array([0.0, 0.0, 0.2])),
-    init * pinocchio.SE3(rot, np.array([0.0, 0.25, 0.2])),
-    init * pinocchio.SE3(rot_neg, np.array([0.0, -0.25, 0.2])),
-    init * pinocchio.SE3(np.eye(3), np.array([0.2, 0.0, 0.0])),
-    init,
+    target,
+    # init * pinocchio.SE3(np.eye(3), np.array([0.0, 0.0, 0.2])),
+    # init * pinocchio.SE3(rot, np.array([0.0, 0.25, 0.2])),
+    # init * pinocchio.SE3(rot_neg, np.array([0.0, -0.25, 0.2])),
+    # init * pinocchio.SE3(np.eye(3), np.array([0.2, 0.0, 0.0])),
+    # init,
 ]
 
 # Initialize visualizer
