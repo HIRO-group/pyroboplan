@@ -126,43 +126,43 @@ if __name__ == "__main__":
     ground_plane.meshColor = np.array([0.5, 0.5, 0.5, 0.5])
     collision_objects["ground_plane"] = ground_plane
 
-    # # Spheres
-    # obstacle_sphere_1 = pinocchio.GeometryObject(
-    #     "obstacle_sphere_1",
-    #     0,
-    #     pinocchio.SE3(np.eye(3), np.array([0.0, 0.1, 1.1])),
-    #     coal.Sphere(0.2),
-    # )
-    # obstacle_sphere_1.meshColor = np.array([0.0, 1.0, 0.0, 0.5])
-    # collision_objects["obstacle_sphere_1"] = obstacle_sphere_1
+    # Spheres
+    obstacle_sphere_1 = pinocchio.GeometryObject(
+        "obstacle_sphere_1",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([0.0, 0.1, 1.1])),
+        coal.Sphere(0.2),
+    )
+    obstacle_sphere_1.meshColor = np.array([0.0, 1.0, 0.0, 0.5])
+    collision_objects["obstacle_sphere_1"] = obstacle_sphere_1
 
-    # obstacle_sphere_2 = pinocchio.GeometryObject(
-    #     "obstacle_sphere_2",
-    #     0,
-    #     pinocchio.SE3(np.eye(3), np.array([0.5, 0.5, 0.5])),
-    #     coal.Sphere(0.25),
-    # )
-    # obstacle_sphere_2.meshColor = np.array([1.0, 1.0, 0.0, 0.5])
-    # collision_objects["obstacle_sphere_2"] = obstacle_sphere_2
+    obstacle_sphere_2 = pinocchio.GeometryObject(
+        "obstacle_sphere_2",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([0.5, 0.5, 0.5])),
+        coal.Sphere(0.25),
+    )
+    obstacle_sphere_2.meshColor = np.array([1.0, 1.0, 0.0, 0.5])
+    collision_objects["obstacle_sphere_2"] = obstacle_sphere_2
 
-    # # Boxes
-    # obstacle_box_1 = pinocchio.GeometryObject(
-    #     "obstacle_box_1",
-    #     0,
-    #     pinocchio.SE3(np.eye(3), np.array([-0.5, 0.5, 0.7])),
-    #     coal.Box(0.25, 0.55, 0.55),
-    # )
-    # obstacle_box_1.meshColor = np.array([1.0, 0.0, 0.0, 0.5])
-    # collision_objects["obstacle_box_1"] = obstacle_box_1
+    # Boxes
+    obstacle_box_1 = pinocchio.GeometryObject(
+        "obstacle_box_1",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([-0.5, 0.5, 0.7])),
+        coal.Box(0.25, 0.55, 0.55),
+    )
+    obstacle_box_1.meshColor = np.array([1.0, 0.0, 0.0, 0.5])
+    collision_objects["obstacle_box_1"] = obstacle_box_1
 
-    # obstacle_box_2 = pinocchio.GeometryObject(
-    #     "obstacle_box_2",
-    #     0,
-    #     pinocchio.SE3(np.eye(3), np.array([-0.5, -0.5, 0.75])),
-    #     coal.Box(0.33, 0.33, 0.33),
-    # )
-    # obstacle_box_2.meshColor = np.array([0.0, 0.0, 1.0, 0.5])
-    # collision_objects["obstacle_box_2"] = obstacle_box_2
+    obstacle_box_2 = pinocchio.GeometryObject(
+        "obstacle_box_2",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([-0.5, -0.5, 0.75])),
+        coal.Box(0.33, 0.33, 0.33),
+    )
+    obstacle_box_2.meshColor = np.array([0.0, 0.0, 1.0, 0.5])
+    collision_objects["obstacle_box_2"] = obstacle_box_2
 
     # Now use the updated function
     add_object_collisions(model, collision_model, visual_model, collision_objects)
