@@ -171,7 +171,7 @@ class RRTPlanner:
             self.collision_data,
             distance_padding=self.options.collision_distance_padding,
         ):
-            print("Start configuration in collision.")
+            # print("Start configuration in collision.")
             return None
         if check_collisions_at_state(
             self.model,
@@ -181,7 +181,7 @@ class RRTPlanner:
             self.collision_data,
             distance_padding=self.options.collision_distance_padding,
         ):
-            print("Goal configuration in collision.")
+            # print("Goal configuration in collision.")
             return None
 
         # Check direct connection to goal.
@@ -198,7 +198,6 @@ class RRTPlanner:
                 latest_start_tree_node = self.add_node_to_tree(
                     self.start_tree, q_goal, start_node
                 )
-                print("Start and goal can be directly connected!")
                 goal_found = True
 
         start_tree_phase = True
@@ -211,9 +210,9 @@ class RRTPlanner:
             # Check for timeouts.
             if time.time() - t_start > self.options.max_planning_time:
                 message = "succeeded" if goal_found else "timed out"
-                print(
-                    f"Planning {message} after {self.options.max_planning_time} seconds."
-                )
+                # print(
+                #     f"Planning {message} after {self.options.max_planning_time} seconds."
+                # )
                 break
             # print(f"Planning for {time.time() - t_start:.2f} seconds...")
             # Choose variables based on whether we're growing the start or goal tree.
