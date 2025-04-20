@@ -172,25 +172,30 @@ class MinimumJerkWithEEConstraint:
 
         return total_error / self.T
 
-    def solve(self, q_init_traj, target_positions, fixed_rotation):
+    def solve(self, q_init_traj, target_positions=None, fixed_rotation=None):
         self.T, self.dof = q_init_traj.shape
 
-        # Precompute SE3 target transforms once
-        T_targets = [pinocchio.SE3(fixed_rotation, p) for p in target_positions]
+        use_ee_objective = target_positions is not None and fixed_rotation is not None
+        if use_ee_objective:
+            T_targets = [pinocchio.SE3(fixed_rotation, p) for p in target_positions]
 
         def objective(q_flat):
             jerk_norm = self._jerk_penalty(q_flat)
-            ee_err_norm = self._ee_pose_error(q_flat, T_targets)
             accel_pen = self._accel_penalty(q_flat)
             vel_pen = self._velocity_spike_penalty(q_flat)
 
+            if use_ee_objective:
+                ee_err_norm = self._ee_pose_error(q_flat, T_targets)
+            else:
+                ee_err_norm = 0.0
+
             self._last_q_flat = q_flat.copy()
 
-            if jerk_norm < self.jerk_threshold and ee_err_norm < self.ee_threshold:
+            if jerk_norm < self.jerk_threshold and (not use_ee_objective or ee_err_norm < self.ee_threshold):
                 raise StopIteration
 
             adaptive_j_weight = self.jerk_weight * (1 + ee_err_norm)
-            adaptive_ee_weight = self.ee_weight * (1 + jerk_norm)
+            adaptive_ee_weight = self.ee_weight * (1 + jerk_norm) if use_ee_objective else 0.0
 
             loss = (
                 adaptive_j_weight * jerk_norm +
@@ -198,7 +203,6 @@ class MinimumJerkWithEEConstraint:
                 self.accel_weight * accel_pen +
                 self.vel_weight * vel_pen
             )
-
             return loss
 
         try:
