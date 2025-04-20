@@ -74,13 +74,20 @@ class OptimizationIk:
             for i in range(self.model.nq)
         ]
 
-        result = minimize(
-            objective,
-            init_state,
-            method='SLSQP',
-            bounds=bounds,
-            options={'maxiter': self.options.max_iters, 'disp': verbose}
-        )
+        import warnings
+
+        # Inside your solve() method, wrap the minimize() call
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning, module="scipy.optimize._slsqp_py")
+
+            result = minimize(
+                objective,
+                init_state,
+                method='SLSQP',
+                bounds=bounds,
+                options={'maxiter': self.options.max_iters, 'disp': verbose}
+            )
+
 
         if result.success:
             q_sol = result.x
