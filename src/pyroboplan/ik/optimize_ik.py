@@ -12,11 +12,8 @@ from ..core.utils import (
 from ..visualization.meshcat_utils import visualize_frame
 from .differential_ik import DifferentialIkOptions
 import vamp
-from data_generation.helpers.metrics import (
-    path_efficiency,
-    max_deviation_along_line,
-    compute_manipulability,
-)
+from numba import njit
+
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -45,6 +42,48 @@ Q_LIMS = np.array(
         ],
     ]
 )
+
+def path_efficiency(ee_positions: np.ndarray) -> float:
+    arc_length = np.sum(np.linalg.norm(np.diff(ee_positions, axis=0), axis=1))
+    direct_dist = np.linalg.norm(ee_positions[-1] - ee_positions[0])
+    return arc_length / (direct_dist + 1e-8)
+
+@njit
+def manip_core(J):
+    J = J.copy()
+    JTJ = J @ J.T
+    if np.linalg.cond(JTJ) < 1e7:
+        return np.sqrt(np.linalg.det(JTJ))
+    else:
+        return 0.0
+
+def compute_manipulability(model, data, q, frame_id):
+    q = np.array(q)
+    if q.shape[0] != model.nv:
+        q = np.concatenate((q, np.zeros(model.nv - q.shape[0])))
+    pinocchio.forwardKinematics(model, data, q)
+    frame_id= model.getFrameId("panda_hand")
+    pinocchio.updateFramePlacement(model, data, frame_id)
+    J = pinocchio.computeFrameJacobian(model, data, q, frame_id, pinocchio.LOCAL_WORLD_ALIGNED)
+    if not np.isfinite(J).all():
+        return 0.0
+    return manip_core(J)
+
+@njit
+def max_deviation_along_line(ee_positions: np.ndarray) -> float:
+    direct_vec = ee_positions[-1] - ee_positions[0]
+    direct_length = np.linalg.norm(direct_vec)
+    unit_vec = direct_vec / (direct_length + 1e-8)
+
+    max_dev = 0.0
+    for i in range(ee_positions.shape[0]):
+        diff = ee_positions[i] - ee_positions[0]
+        proj = np.dot(diff, unit_vec) * unit_vec
+        dev = diff - proj
+        dev_mag = np.linalg.norm(dev)
+        if dev_mag > max_dev:
+            max_dev = dev_mag
+    return max_dev
 
 
 class OptimizationIk:
